@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NutriNest Millet Bites</title>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#fff8f0;color:#35233f}
+header{background:#713b83;color:#fff;text-align:center;padding:24px 10px}
+header h1{margin:0;font-size:28px} header p{margin-bottom:0}
+.intro{text-align:center;padding:15px 10px}.intro h2{color:#713b83}
+.products{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px}
+.product-card{background:#fff;border:1px solid #eadced;border-radius:12px;padding:12px 9px;text-align:center}
+.cookie{font-size:40px}.product-card h3{font-size:14px;min-height:36px}
+.price{color:#713b83;font-size:18px;font-weight:bold;margin:10px 0}
+select{width:90%;padding:8px;margin-bottom:10px}
+button{border:0;border-radius:7px;padding:11px;cursor:pointer}
+.add-button{width:100%;background:#713b83;color:white}
+.cart-section,.customer-section{margin:12px;padding:15px;background:#fff;border-radius:12px;border:1px solid #eadced}
+.cart-section h2,.customer-section h2{color:#713b83}
+.cart-item{border-bottom:1px solid #eee;padding:12px 0;line-height:1.8}
+.remove-button{background:#f5dfe0;color:#9d2525}
+#total{font-size:20px;font-weight:bold}
+.customer-section label{display:block;margin:12px 0 5px;font-weight:bold;font-size:14px}
+.customer-section input,.customer-section textarea{width:100%;padding:12px;border:1px solid #d8c9dc;border-radius:7px;font-size:15px;font-family:Arial,sans-serif}
+.customer-section textarea{min-height:85px;resize:vertical}
+.location-button{width:100%;background:#e9def0;color:#542c63;font-weight:bold;margin-top:8px}
+.location-status{font-size:13px;line-height:1.5;color:#4d4052;margin-top:8px}
+.payment-button{width:100%;padding:14px;background:#168b48;color:white;font-size:16px;font-weight:bold;margin-top:15px}
+.note{font-size:12px;color:#675d69;line-height:1.5}
+footer{background:#713b83;color:white;text-align:center;padding:18px;margin-top:20px}
+@media(min-width:700px){.products{grid-template-columns:repeat(3,minmax(0,1fr));max-width:1000px;margin:auto}.cart-section,.customer-section{max-width:700px;margin:20px auto}}
+</style>
+</head>
+<body>
+<header><h1>NutriNest</h1><p>MILLET BITES</p><p>Homemade Millet Cookies</p></header>
+<section class="intro"><h2>Our Cookies</h2><p>Select your cookies and order securely online.</p></section>
+<div class="products" id="products"></div>
+
+<section class="cart-section">
+<h2>🛒 Your Cart</h2><div id="cartItems">Your cart is empty.</div><p id="total">Total: ₹0</p>
+</section>
+
+<section class="customer-section">
+<h2>📦 Customer Delivery Details</h2>
+<p>Please enter your details for delivery.</p>
+<form id="customerForm">
+<label for="customerName">Customer Name *</label>
+<input type="text" id="customerName" placeholder="Enter your full name" required>
+<label for="customerPhone">Mobile Number *</label>
+<input type="tel" id="customerPhone" placeholder="10-digit mobile number" pattern="[6-9][0-9]{9}" maxlength="10" required>
+<label for="houseNumber">House Number *</label>
+<input type="text" id="houseNumber" placeholder="Enter house number" required>
+<label for="street">Street / Area *</label>
+<input type="text" id="street" placeholder="Enter street or area" required>
+<label for="landmark">Landmark (Optional)</label>
+<input type="text" id="landmark" placeholder="Nearby landmark">
+<label for="city">City / Town *</label>
+<input type="text" id="city" placeholder="Enter city" required>
+<label for="state">State *</label>
+<input type="text" id="state" value="Telangana" required>
+<label for="pincode">PIN Code *</label>
+<input type="text" id="pincode" placeholder="6-digit PIN code" pattern="[0-9]{6}" maxlength="6" required>
+
+<label>Delivery Location (GPS)</label>
+<button type="button" class="location-button" id="locationButton">📍 Use My Current Location</button>
+<div class="location-status" id="locationStatus">Location has not been shared. Tap the button and allow location access. GPS is optional; please enter your delivery address above.</div>
+
+<button type="submit" class="payment-button" id="payButton">Pay Online & Place Order</button>
+<p class="note">Secure payment is processed by Razorpay. UPI, supported wallets, debit/credit cards and other available methods will appear at checkout. Do not close the page until payment verification finishes.</p>
+</form>
+</section>
+<footer><p>NutriNest Millet Bites</p><p>Homemade with care ❤️</p></footer>
+
+<script>
+const WHATSAPP_NUMBER = "916303696096";
+const products = [
+ {id:0,name:"Ragi Oats Nuts Cookies (250g)",price:249},
+ {id:1,name:"Jowar Oats Nuts Cookies (250g)",price:249},
+ {id:2,name:"Korra Oats Nuts Cookies (250g)",price:249},
+ {id:3,name:"Little Millet Oats & Nuts Cookies (250g)",price:249},
+ {id:4,name:"Mixed Oats Nuts Cookies (250g)",price:249},
+ {id:5,name:"Ragi Almond Cookies (250g)",price:299},
+ {id:6,name:"Jowar Almond Cookies (250g)",price:299},
+ {id:7,name:"Little Millet Almond Cookies (250g)",price:299},
+ {id:8,name:"Korra Almond Cookies (250g)",price:299},
+ {id:9,name:"Mixed Almond Cookies (250g)",price:299}
+];
+let cart = [];
+let customerLocation = null;
+
+function displayProducts(){
+ document.getElementById("products").innerHTML=products.map((p,i)=>`
+ <div class="product-card"><div class="cookie">🍪</div><h3>${p.name}</h3>
+ <div class="price">₹${p.price}</div><label for="qty-${i}">Quantity:</label><br>
+ <select id="qty-${i}">${Array.from({length:10},(_,n)=>`<option value="${n+1}">${n+1}</option>`).join("")}</select>
+ <button class="add-button" onclick="addToCart(${i})">Add to Cart</button></div>`).join("");
+}
+function addToCart(index){
+ const p=products[index], qty=Number(document.getElementById("qty-"+index).value);
+ const existing=cart.find(x=>x.id===p.id);
+ if(existing) existing.quantity+=qty; else cart.push({id:p.id,name:p.name,price:p.price,quantity:qty});
+ displayCart(); alert(p.name+" added to cart!");
+}
+function removeFromCart(index){cart.splice(index,1);displayCart();}
+function displayCart(){
+ const el=document.getElementById("cartItems"), totalEl=document.getElementById("total");
+ if(!cart.length){el.textContent="Your cart is empty.";totalEl.textContent="Total: ₹0";return;}
+ let total=0;
+ el.innerHTML=cart.map((item,i)=>{const sub=item.price*item.quantity;total+=sub;return `<div class="cart-item"><strong>${item.name}</strong><br>Quantity: ${item.quantity}<br>Subtotal: ₹${sub}<br><button type="button" class="remove-button" onclick="removeFromCart(${i})">Remove</button></div>`}).join("");
+ totalEl.textContent="Total: ₹"+total;
+}
+document.getElementById("locationButton").addEventListener("click",()=>{
+ const status=document.getElementById("locationStatus");
+ if(!navigator.geolocation){status.textContent="This browser does not support GPS location.";return;}
+ status.textContent="Getting your location…";
+ navigator.geolocation.getCurrentPosition(pos=>{
+  customerLocation={latitude:pos.coords.latitude,longitude:pos.coords.longitude};
+  const mapUrl=`https://www.google.com/maps?q=${customerLocation.latitude},${customerLocation.longitude}`;
+  status.innerHTML=`<span style="color:green">Location captured successfully.</span> <a href="${mapUrl}" target="_blank" rel="noopener">View your location on Google Maps</a>`;
+ },err=>{
+  customerLocation=null;
+  const messages={1:"Location permission was denied. You can continue by entering your full address.",2:"Location is unavailable. Please try again or enter your address.",3:"Location request timed out. Please try again."};
+  status.textContent=messages[err.code]||"Could not get location. Please enter your full address.";
+ },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+});
+
+function getCustomerDetails(){
+ return {
+  name:document.getElementById("customerName").value.trim(),
+  phone:document.getElementById("customerPhone").value.trim(),
+  house:document.getElementById("houseNumber").value.trim(),
+  street:document.getElementById("street").value.trim(),
+  landmark:document.getElementById("landmark").value.trim(),
+  city:document.getElementById("city").value.trim(),
+  state:document.getElementById("state").value.trim(),
+  pincode:document.getElementById("pincode").value.trim()
+ };
+}
+document.getElementById("customerForm").addEventListener("submit",async event=>{
+ event.preventDefault();
+ if(!cart.length){alert("Please add cookies to your cart first.");return;}
+ const button=document.getElementById("payButton");
+ const customer=getCustomerDetails();
+ button.disabled=true;button.textContent="Preparing secure payment…";
+ try{
+  // Server validates product IDs/prices and creates the Razorpay order.
+  const orderResponse=await fetch("/.netlify/functions/create-order",{
+   method:"POST",headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({items:cart.map(x=>({id:x.id,quantity:x.quantity}))})
+  });
+  const order=await orderResponse.json();
+  if(!orderResponse.ok) throw new Error(order.error||"Could not create payment order.");
+  const options={
+   key:order.keyId,amount:order.amount,currency:order.currency, name:"NutriNest Millet Bites",
+   description:"Millet Cookies Order",order_id:order.orderId,
+   prefill:{name:customer.name,contact:customer.phone},
+   notes:{customer_name:customer.name,pincode:customer.pincode},
+   theme:{color:"#713b83"},
+   handler:async function(response){
+    try{
+     const verifyResponse=await fetch("/.netlify/functions/verify-payment",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({razorpay_order_id:response.razorpay_order_id,razorpay_payment_id:response.razorpay_payment_id,razorpay_signature:response.razorpay_signature})
+     });
+     const verified=await verifyResponse.json();
+     if(!verifyResponse.ok||!verified.verified) throw new Error(verified.error||"Payment verification failed.");
+     let msg="Hello NutriNest Millet Bites! I have completed my online payment.\\n\\n";
+     msg+="PAYMENT: SUCCESSFUL\\nPayment ID: "+response.razorpay_payment_id+"\\nOrder ID: "+response.razorpay_order_id+"\\n\\n";
+     msg+="CUSTOMER DETAILS\\nName: "+customer.name+"\\nMobile: "+customer.phone+"\\nHouse: "+customer.house+"\\nStreet/Area: "+customer.street+"\\n";
+     if(customer.landmark)msg+="Landmark: "+customer.landmark+"\\n";
+     msg+="City: "+customer.city+"\\nState: "+customer.state+"\\nPIN: "+customer.pincode+"\\n";
+     if(customerLocation){msg+="GPS Location: https://www.google.com/maps?q="+customerLocation.latitude+","+customerLocation.longitude+"\\n";}
+     msg+="\\nORDER DETAILS\\n";let total=0;
+     cart.forEach(item=>{const sub=item.price*item.quantity;total+=sub;msg+=item.name+"\\nQuantity: "+item.quantity+"\\nSubtotal: Rs. "+sub+"\\n\\n";});
+     msg+="Paid Total: Rs. "+total+"\\nPlease confirm the order and delivery.";
+     window.location.href="https://api.whatsapp.com/send?phone="+WHATSAPP_NUMBER+"&text="+encodeURIComponent(msg);
+    }catch(e){alert("Payment was received but verification could not be completed in this page. Please contact NutriNest and share Payment ID: "+response.razorpay_payment_id+". "+e.message);}
+   },
+   modal:{ondismiss:function(){button.disabled=false;button.textContent="Pay Online & Place Order";}}
+  };
+  const rzp=new Razorpay(options);
+  rzp.on("payment.failed",function(response){alert("Payment failed: "+(response.error.description||"Please try again."));button.disabled=false;button.textContent="Pay Online & Place Order";});
+  rzp.open();
+ }catch(error){alert(error.message);button.disabled=false;button.textContent="Pay Online & Place Order";}
+});
+displayProducts();displayCart();
+</script>
+</body></html>
